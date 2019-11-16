@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.com/Michael-F-Bryan/mdbook-html.svg?branch=master)](https://travis-ci.com/Michael-F-Bryan/mdbook-html)
 
-([API Docs])
+(**[API Docs][docs]/[User Guide][ug]**)
 
 An alternate HTML backend for [mdbook][md].
 
@@ -24,5 +24,6 @@ submitted for inclusion in the work by you, as defined in the Apache-2.0
 license, shall be dual licensed as above, without any additional terms or
 conditions.
 
-[API Docs]: https://michael-f-bryan.github.io/mdbook-html
+[docs]: https://michael-f-bryan.github.io/mdbook-html/doc
+[ug]: https://michael-f-bryan.github.io/mdbook-html/user-guide
 [md]: https://github.com/rust-lang-nursery/mdBook

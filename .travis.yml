@@ -4,16 +4,28 @@ cache: cargo
 
 rust:
   - 1.34.0
+  - nightly
+
+env:
+  - RUST_BACKTRACE=1
+
+install:
+  - command -v mdbook || cargo install --debug mdbook
+  - source ~/.cargo/env
 
 script: 
   - cargo build --verbose
   - cargo test --verbose
   - cargo doc --verbose
+  - cargo build --release --verbose
 
 before_deploy:
   - cargo doc --verbose
   - echo '<meta http-equiv="refresh" content="0; url=mdbook_html/index.html" /> ' > target/doc/index.html
-  - cp -r target/doc public
+  - mdbook build user-guide
+  - mkdir public
+  - cp -r target/{doc,user-guide} public
+  - echo '<meta http-equiv="refresh" content="0; url=user-guide/index.html" /> ' > public/index.html
 
 deploy:
   provider: pages
@@ -23,3 +35,5 @@ deploy:
   local_dir: public
   on:
     branch: master
+    # nightly rustdoc gives us nice intra-crate links
+    rust: nightly

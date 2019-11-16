@@ -5,3 +5,9 @@ authors = ["Michael Bryan <michaelfbryan@gmail.com>"]
 license = "MIT OR Apache-2.0"
 edition = "2018"
 description = "An alternate HTML backend for mdbook."
+
+[dependencies]
+mdbook = "0.3.5"
+log = "0.4.8"
+serde = "1.0.102"
+serde_derive = "1.0.102"
