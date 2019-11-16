@@ -22,6 +22,7 @@ script:
 before_deploy:
   - cargo doc --verbose
   - echo '<meta http-equiv="refresh" content="0; url=mdbook_html/index.html" /> ' > target/doc/index.html
+  # yes, I know the irony of using the default HTML renderer for the user guide...
   - mdbook build user-guide
   - mkdir public
   - cp -r target/{doc,user-guide} public
