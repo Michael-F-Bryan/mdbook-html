@@ -3,6 +3,7 @@
 //! [md]: https://github.com/rust-lang-nursery/mdBook
 
 mod config;
+pub mod context;
 mod renderer;
 mod themes;
 

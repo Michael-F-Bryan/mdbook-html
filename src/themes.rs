@@ -1,13 +1,16 @@
 use crate::Config;
 use handlebars::{Handlebars, TemplateError};
 
+/// Registers all templates and partials associated with this theme.
 pub(crate) fn register(
     hbs: &mut Handlebars,
-    cfg: &Config,
+    _cfg: &Config,
 ) -> Result<(), RegistrationError> {
     register_default_themes(hbs)?;
 
-    unimplemented!()
+    // TODO: load from the user's `theme/` directory, if it exists
+
+    Ok(())
 }
 
 #[derive(Debug, PartialEq, thiserror::Error)]
@@ -74,5 +77,5 @@ fn register_default_themes(
         "partials/sidebar.hbs",
     );
 
-    unimplemented!()
+    Ok(())
 }
