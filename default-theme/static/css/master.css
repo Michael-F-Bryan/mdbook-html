@@ -6,7 +6,6 @@ html {
 body {
     font-size: 1.8rem;
     line-height: 1.618;
-    max-width: 38em;
     margin: auto;
     color: #4a4a4a;
     background-color: #f9f9f9;
@@ -25,12 +24,7 @@ body {
     }
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
+h1, h2, h3, h4, h5, h6 {
     line-height: 1.1;
     font-family: Verdana, Geneva, sans-serif;
     font-weight: 700;
@@ -66,4 +60,34 @@ h5 {
 
 h6 {
     font-size: 1em;
+}
+
+/* Page layout */
+
+.container {
+    display: flex;
+    flex: 1;
+}
+
+main {
+    flex: 1;
+    padding: 0 20px;
+}
+
+nav {
+    flex: 0 0 180px;
+    padding: 0 10px;
+    order: -1;
+}
+
+header {
+    position: absolute;
+}
+
+/* Sidebar visual styling */
+
+nav {
+    border-right: solid 2px black;
+    height: 100vh;
+    overflow: auto;
 }

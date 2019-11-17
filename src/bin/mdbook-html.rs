@@ -1,6 +1,6 @@
 use mdbook::{
     errors::{Error, ResultExt},
-    renderer::{RenderContext, Renderer as _},
+    renderer::Renderer as _,
     MDBook,
 };
 use mdbook_html::Renderer;
@@ -25,16 +25,16 @@ fn main() {
 }
 
 fn run(args: Args) -> Result<(), Error> {
-    let ctx: RenderContext = if args.standalone {
-        let md = MDBook::load(dunce::canonicalize(&args.root)?)?;
-        let destination = md.build_dir_for("linkcheck");
-        RenderContext::new(md.root, md.book, md.config, destination)
-    } else {
-        serde_json::from_reader(io::stdin())
-            .chain_err(|| "Unable to parse RenderContext")?
-    };
+    let renderer = Renderer;
 
-    Renderer.render(&ctx)?;
+    if args.standalone {
+        let md = MDBook::load(dunce::canonicalize(&args.root)?)?;
+        md.execute_build_process(&renderer)?;
+    } else {
+        let ctx = serde_json::from_reader(io::stdin())
+            .chain_err(|| "Unable to parse RenderContext")?;
+        Renderer.render(&ctx)?;
+    }
 
     Ok(())
 }

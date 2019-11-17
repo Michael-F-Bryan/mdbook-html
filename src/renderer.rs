@@ -66,7 +66,7 @@ fn make_a_plan<'book>(
             .filter_map(just_chapters)
             .map(|ch| FullChapter { src: ch })
             .collect(),
-        print: PrintPage { book },
+        print: PrintPage { _book: book },
         sidebar: Sidebar {},
         assets,
     })
@@ -119,6 +119,7 @@ impl<'a> Plan<'a> {
 
 #[derive(Debug, Clone, PartialEq)]
 enum Asset {
+    #[allow(dead_code)]
     OnDisk {
         /// The asset's location on disk.
         src_filename: PathBuf,
@@ -215,7 +216,7 @@ impl<'a> FullChapter<'a> {
 
 /// A page meant to show the entire document so it can be printed.
 struct PrintPage<'a> {
-    book: &'a Book,
+    _book: &'a Book,
 }
 
 impl<'a> PrintPage<'a> {
@@ -237,12 +238,18 @@ impl<'a> PrintPage<'a> {
                 current_file: &dest,
             },
         };
+
+        if log::log_enabled!(log::Level::Trace) {
+            let print_context = serde_json::to_string_pretty(&print_context)?;
+            log::trace!("Rendering the print page with {}", print_context);
+        }
+
         let rendered = hbs.render("layouts/print.hbs", &print_context)?;
 
         log::debug!(
             "Writing the print page to \"{}\" ({} bytes)",
+            dest.display(),
             rendered.len(),
-            dest.display()
         );
 
         fs::write(&dest, rendered.as_bytes())
@@ -271,6 +278,11 @@ fn render_chapter(
             current_file: dest,
         },
     };
+
+    if log::log_enabled!(log::Level::Trace) {
+        let context = serde_json::to_string_pretty(&context)?;
+        log::trace!("Rendering \"{}\" with {}", chapter.name, context);
+    }
 
     hbs.render("layouts/chapter.hbs", &context)
         .chain_err(|| format!("Unable to render \"{}\"", chapter.name))
