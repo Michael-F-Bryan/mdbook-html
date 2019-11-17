@@ -4,6 +4,7 @@
 
 mod config;
 pub mod context;
+pub mod helpers;
 mod renderer;
 mod themes;
 

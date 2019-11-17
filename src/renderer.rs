@@ -1,5 +1,5 @@
 use crate::{
-    context::{ChapterInfo, Context, PrintContext, Sidebar},
+    context::{ChapterInfo, Common, Context, PrintContext, Sidebar},
     Config,
 };
 use handlebars::Handlebars;
@@ -32,10 +32,15 @@ impl mdbook::Renderer for Renderer {
 
         let mut hbs = Handlebars::new();
         hbs.set_strict_mode(true);
-        register_default_helpers(&mut hbs);
+        crate::helpers::register(&mut hbs, ctx);
         crate::themes::register(&mut hbs, &cfg)
             .chain_err(|| "Unable to register templates")?;
         log::debug!("Set up the handlebars renderer");
+
+        if ctx.destination.exists() {
+            fs::remove_dir_all(&ctx.destination)
+                .chain_err(|| "Unable to clean the output directory")?;
+        }
 
         let plan = make_a_plan(&ctx.book, &cfg)?;
         plan.render(&hbs, &cfg, ctx)?;
@@ -180,12 +185,12 @@ impl<'a> FullChapter<'a> {
         cfg: &Config,
         ctx: &RenderContext,
     ) -> Result<(), Error> {
-        let rendered =
-            render_chapter(self.src, hbs, sidebar, cfg, &ctx.config)?;
-
         let mut dest = ctx.destination.join(&self.src.path);
         dest.set_extension("html");
         ensure_parent_exists(&dest)?;
+
+        let rendered =
+            render_chapter(self.src, &dest, hbs, sidebar, cfg, &ctx.config)?;
 
         if let Some(parent) = dest.parent() {
             if !parent.exists() {
@@ -221,15 +226,18 @@ impl<'a> PrintPage<'a> {
         cfg: &Config,
         ctx: &RenderContext,
     ) -> Result<(), Error> {
-        let print_context = PrintContext {
-            html_config: cfg,
-            book_config: &ctx.config.book,
-            sidebar,
-        };
-        let rendered = hbs.render("layouts/print.hbs", &print_context)?;
-
         let dest = ctx.destination.join("print.html");
         ensure_parent_exists(&dest)?;
+
+        let print_context = PrintContext {
+            common: Common {
+                html_config: cfg,
+                book_config: &ctx.config.book,
+                sidebar,
+                current_file: &dest,
+            },
+        };
+        let rendered = hbs.render("layouts/print.hbs", &print_context)?;
 
         log::debug!(
             "Writing the print page to \"{}\" ({} bytes)",
@@ -244,6 +252,7 @@ impl<'a> PrintPage<'a> {
 
 fn render_chapter(
     chapter: &Chapter,
+    dest: &Path,
     hbs: &Handlebars,
     sidebar: &Sidebar,
     cfg: &Config,
@@ -255,9 +264,12 @@ fn render_chapter(
             content: &body,
             title: &chapter.name,
         },
-        html_config: cfg,
-        book_config: &book_cfg.book,
-        sidebar,
+        common: Common {
+            html_config: cfg,
+            book_config: &book_cfg.book,
+            sidebar,
+            current_file: dest,
+        },
     };
 
     hbs.render("layouts/chapter.hbs", &context)
@@ -270,5 +282,3 @@ fn md_to_html(src: &str) -> String {
 
     buffer
 }
-
-fn register_default_helpers(_hbs: &mut Handlebars) {}
