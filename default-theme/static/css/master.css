@@ -6,10 +6,10 @@ html {
 body {
     font-size: 1.8rem;
     line-height: 1.618;
-    margin: auto;
+    margin: 0;
+    padding: 0;
     color: #4a4a4a;
     background-color: #f9f9f9;
-    padding: 13px;
 }
 
 @media (max-width: 684px) {
@@ -30,11 +30,7 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
     overflow-wrap: break-word;
     word-wrap: break-word;
-    -ms-word-break: break-all;
     word-break: break-word;
-    -ms-hyphens: auto;
-    -moz-hyphens: auto;
-    -webkit-hyphens: auto;
     hyphens: auto;
 }
 
@@ -69,9 +65,14 @@ h6 {
     flex: 1;
 }
 
-main {
+.page {
     flex: 1;
-    padding: 0 20px;
+    padding: 0;
+    overflow: auto;
+}
+
+main {
+    padding: 1em;
 }
 
 nav {
@@ -81,13 +82,41 @@ nav {
 }
 
 header {
-    position: absolute;
+    position: fixed;
+    display: block;
+    width: 100%;
+    text-align: center;
 }
 
 /* Sidebar visual styling */
 
 nav {
     border-right: solid 2px black;
+    margin: 0;
     height: 100vh;
-    overflow: auto;
+    overflow-y: auto;
+}
+
+/* 
+    The header is hidden initially, but will fade-in when you hover over where
+    it would be (at the top).
+
+    When the mouse leaves the header, wait a bit before fading out again.
+*/
+
+header {
+    opacity: 0;
+    padding: 0.2em;
+    background-color: #f9f9f9;
+    transition: opacity 500ms ease-in-out;
+    transition-delay: 1s;
+}
+
+header:hover {
+    opacity: 1;
+    transition: opacity 750ms ease-in-out;
+}
+
+.book-title {
+    color: darkslategray;
 }
