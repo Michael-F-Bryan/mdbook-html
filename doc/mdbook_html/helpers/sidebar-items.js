@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["register","Registers all handlebars helpers."]],"struct":[["Static",""]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ChapterInfo",""],["Common",""],["Context","Context passed to the `layouts/chapter.hbs` template."],["PrintContext","Context passed to the `layouts/print.hbs` template."],["Sidebar",""]]});

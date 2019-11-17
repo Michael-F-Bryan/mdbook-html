@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Dir","A directory entry."],["File","A file with its contents stored in a `&'static [u8]`."]]});
