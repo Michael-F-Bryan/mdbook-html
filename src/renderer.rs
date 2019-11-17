@@ -4,7 +4,7 @@ use crate::{
 };
 use handlebars::Handlebars;
 use mdbook::{
-    book::{Book, Chapter},
+    book::{Book, BookItem, Chapter},
     errors::{Error, ResultExt},
     renderer::RenderContext,
 };
@@ -39,7 +39,25 @@ impl mdbook::Renderer for Renderer {
     }
 }
 
-fn make_a_plan(_book: &Book) -> Plan<'_> { unimplemented!() }
+fn make_a_plan(book: &Book) -> Plan<'_> {
+    Plan {
+        chapters: book
+            .iter()
+            .filter_map(just_chapters)
+            .map(|ch| FullChapter { src: ch })
+            .collect(),
+        print: PrintPage { book },
+        assets: Vec::new(),
+        sidebar: Sidebar {},
+    }
+}
+
+fn just_chapters(book_item: &BookItem) -> Option<&Chapter> {
+    match book_item {
+        BookItem::Chapter(ref ch) => Some(ch),
+        BookItem::Separator => None,
+    }
+}
 
 /// A plan for how to render a document.
 struct Plan<'a> {
@@ -126,7 +144,7 @@ impl<'a> FullChapter<'a> {
 
 /// A page meant to show the entire document so it can be printed.
 struct PrintPage<'a> {
-    _book: &'a Book,
+    book: &'a Book,
 }
 
 impl<'a> PrintPage<'a> {
