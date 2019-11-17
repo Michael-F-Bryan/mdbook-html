@@ -10,7 +10,11 @@ use mdbook::{
 };
 use pulldown_cmark::Parser;
 use rayon::prelude::*;
-use std::path::{Path, PathBuf};
+use std::{
+    borrow::Cow,
+    fs,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
 pub struct Renderer;
@@ -27,29 +31,40 @@ impl mdbook::Renderer for Renderer {
         log::debug!("Loaded the config: {:?}", cfg);
 
         let mut hbs = Handlebars::new();
+        hbs.set_strict_mode(true);
         register_default_helpers(&mut hbs);
         crate::themes::register(&mut hbs, &cfg)
             .chain_err(|| "Unable to register templates")?;
         log::debug!("Set up the handlebars renderer");
 
-        let plan = make_a_plan(&ctx.book);
+        let plan = make_a_plan(&ctx.book, &cfg)?;
         plan.render(&hbs, &cfg, ctx)?;
 
         Ok(())
     }
 }
 
-fn make_a_plan(book: &Book) -> Plan<'_> {
-    Plan {
+fn make_a_plan<'book>(
+    book: &'book Book,
+    cfg: &Config,
+) -> Result<Plan<'book>, Error> {
+    let theme_assets = crate::themes::assets(cfg)
+        .chain_err(|| "Unable to load the theme assets")?;
+    let assets = theme_assets
+        .into_iter()
+        .map(|(filename, content)| Asset::FromTheme { filename, content })
+        .collect();
+
+    Ok(Plan {
         chapters: book
             .iter()
             .filter_map(just_chapters)
             .map(|ch| FullChapter { src: ch })
             .collect(),
         print: PrintPage { book },
-        assets: Vec::new(),
         sidebar: Sidebar {},
-    }
+        assets,
+    })
 }
 
 fn just_chapters(book_item: &BookItem) -> Option<&Chapter> {
@@ -86,9 +101,14 @@ impl<'a> Plan<'a> {
     }
 
     fn copy_across_static_assets(&self, dest_dir: &Path) -> Result<(), Error> {
-        self.assets
-            .par_iter()
-            .try_for_each(|asset| asset.write_to(dest_dir))
+        self.assets.par_iter().try_for_each(|asset| {
+            asset.write_to(dest_dir).chain_err(|| {
+                format!(
+                    "Unable to copy across \"{}\"",
+                    asset.destination_filename(dest_dir).display()
+                )
+            })
+        })
     }
 }
 
@@ -103,21 +123,33 @@ enum Asset {
     FromTheme {
         /// The asset's path, relative to the `themes/static/` directory.
         filename: PathBuf,
-        content: Vec<u8>,
+        content: Cow<'static, [u8]>,
     },
 }
 
 impl Asset {
-    fn write_to(&self, destination_dir: &Path) -> Result<(), Error> {
+    fn destination_filename(&self, destination_dir: &Path) -> PathBuf {
         match self {
-            Asset::OnDisk {
-                src_filename,
-                destination,
-            } => {
-                std::fs::copy(src_filename, destination_dir.join(destination))?;
+            Asset::OnDisk { destination, .. } => {
+                destination_dir.join(destination)
+            },
+            Asset::FromTheme { filename, .. } => destination_dir.join(filename),
+        }
+    }
+
+    fn write_to(&self, destination_dir: &Path) -> Result<(), Error> {
+        let dest = self.destination_filename(destination_dir);
+        ensure_parent_exists(&dest)?;
+
+        match self {
+            Asset::OnDisk { src_filename, .. } => {
+                fs::copy(src_filename, dest)?;
                 Ok(())
             },
-            Asset::FromTheme { .. } => unimplemented!(),
+            Asset::FromTheme { content, .. } => {
+                fs::write(dest, content)?;
+                Ok(())
+            },
         }
     }
 }
@@ -125,6 +157,19 @@ impl Asset {
 /// Normal content.
 struct FullChapter<'a> {
     src: &'a Chapter,
+}
+
+fn ensure_parent_exists(path: &Path) -> Result<(), Error> {
+    if let Some(parent) = path.parent() {
+        if !parent.exists() {
+            log::debug!("Creating the \"{}\" directory", parent.display());
+            fs::create_dir_all(&parent).chain_err(|| {
+                format!("Unable to create \"{}\"", parent.display())
+            })?;
+        }
+    }
+
+    Ok(())
 }
 
 impl<'a> FullChapter<'a> {
@@ -138,7 +183,28 @@ impl<'a> FullChapter<'a> {
         let rendered =
             render_chapter(self.src, hbs, sidebar, cfg, &ctx.config)?;
 
-        unimplemented!()
+        let mut dest = ctx.destination.join(&self.src.path);
+        dest.set_extension("html");
+        ensure_parent_exists(&dest)?;
+
+        if let Some(parent) = dest.parent() {
+            if !parent.exists() {
+                log::debug!("Creating the \"{}\" directory", parent.display());
+                fs::create_dir_all(&parent).chain_err(|| {
+                    format!("Unable to create \"{}\"", parent.display())
+                })?;
+            }
+        }
+
+        log::debug!(
+            "Writing \"{}\" to \"{}\" ({} bytes)",
+            self.src.name,
+            dest.display(),
+            rendered.len(),
+        );
+
+        fs::write(&dest, rendered.as_bytes())
+            .chain_err(|| format!("Unable to write to \"{}\"", dest.display()))
     }
 }
 
@@ -160,9 +226,19 @@ impl<'a> PrintPage<'a> {
             book_config: &ctx.config.book,
             sidebar,
         };
-        let _rendered = hbs.render("layouts/chapter.hbs", &print_context)?;
+        let rendered = hbs.render("layouts/print.hbs", &print_context)?;
 
-        unimplemented!()
+        let dest = ctx.destination.join("print.html");
+        ensure_parent_exists(&dest)?;
+
+        log::debug!(
+            "Writing the print page to \"{}\" ({} bytes)",
+            rendered.len(),
+            dest.display()
+        );
+
+        fs::write(&dest, rendered.as_bytes())
+            .chain_err(|| format!("Unable to write to \"{}\"", dest.display()))
     }
 }
 
@@ -175,7 +251,10 @@ fn render_chapter(
 ) -> Result<String, Error> {
     let body = md_to_html(&chapter.content);
     let context = Context {
-        chapter: ChapterInfo { content: &body },
+        chapter: ChapterInfo {
+            content: &body,
+            title: &chapter.name,
+        },
         html_config: cfg,
         book_config: &book_cfg.book,
         sidebar,

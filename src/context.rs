@@ -13,6 +13,7 @@ pub struct Context<'a> {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ChapterInfo<'a> {
     pub content: &'a str,
+    pub title: &'a str,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
