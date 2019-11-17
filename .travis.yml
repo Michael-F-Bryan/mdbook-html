@@ -30,8 +30,8 @@ before_deploy:
 
 deploy:
   - provider: pages
-    cleanup: false
-    github_token: $GITHUB_TOKEN 
+    edge: true
+    token: $GITHUB_TOKEN
     keep_history: false
     local_dir: public
     on:
